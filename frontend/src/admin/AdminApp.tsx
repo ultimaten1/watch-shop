@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { NavLink, Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { NavLink, Navigate, Outlet, Route, Routes, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, auth } from '../api'
 import { usePageMeta } from '../hooks'
 import Login from './Login'
@@ -42,10 +42,17 @@ function Guard() {
         <button className="text-btn" onClick={() => { auth.clear(); nav('/admin/login') }}>Đăng xuất</button>
       </aside>
       <section className="admin__main">
-        <Outlet />
+        <Outlet context={me} />
       </section>
     </div>
   )
+}
+
+/** Trang chỉ dành cho chủ cửa hàng; nhân viên bị đưa về trang tổng quan */
+function OwnerOnly({ children }: { children: ReactNode }) {
+  const me = useOutletContext<AdminMe | null>()
+  if (me?.role !== 'Owner') return <Navigate to="/admin" replace />
+  return <>{children}</>
 }
 
 export default function AdminApp() {
@@ -61,7 +68,7 @@ export default function AdminApp() {
         <Route path="san-pham/:id" element={<ProductForm />} />
         <Route path="hang" element={<AdminBrands />} />
         <Route path="tin-nhan" element={<AdminMessages />} />
-        <Route path="tai-khoan" element={<AdminUsers />} />
+        <Route path="tai-khoan" element={<OwnerOnly><AdminUsers /></OwnerOnly>} />
         <Route path="doi-mat-khau" element={<ChangePassword />} />
       </Route>
     </Routes>

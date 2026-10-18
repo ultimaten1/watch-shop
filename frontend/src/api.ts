@@ -7,10 +7,13 @@ const BASE = import.meta.env.VITE_API_BASE ?? ''
 const TOKEN_KEY = 'ws_admin_token'
 const CUSTOMER_KEY = 'ws_customer_token'
 
+// Token quản trị chỉ lưu trong phiên (sessionStorage): đóng tab / trình duyệt là tự đăng xuất.
+// Dọn token cũ từng lưu ở localStorage.
+try { localStorage.removeItem(TOKEN_KEY) } catch { /* bỏ qua */ }
 export const auth = {
-  get: () => localStorage.getItem(TOKEN_KEY),
-  set: (t: string) => localStorage.setItem(TOKEN_KEY, t),
-  clear: () => localStorage.removeItem(TOKEN_KEY),
+  get: () => sessionStorage.getItem(TOKEN_KEY),
+  set: (t: string) => sessionStorage.setItem(TOKEN_KEY, t),
+  clear: () => sessionStorage.removeItem(TOKEN_KEY),
 }
 
 export const customerAuth = {
@@ -48,7 +51,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (res.status === 401 && token) {
+    // Token hết hạn / tài khoản bị khoá: xoá đăng nhập, đưa quản trị viên về trang đăng nhập
     store.clear()
+    if (!asCustomer && window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/admin/login')) {
+      window.location.assign('/admin/login')
+    }
   }
   if (res.status === 429) throw new ApiError('Bạn thao tác quá nhanh, vui lòng đợi một phút rồi thử lại.', 429)
   if (!res.ok) {
