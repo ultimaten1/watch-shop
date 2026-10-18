@@ -16,6 +16,8 @@ public static class DbSeeder
             db.AdminUsers.Add(new AdminUser
             {
                 Username = username,
+                FullName = "Chủ cửa hàng",
+                Role = AdminRoles.Owner,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password)
             });
             await db.SaveChangesAsync();

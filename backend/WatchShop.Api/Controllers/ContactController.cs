@@ -29,13 +29,13 @@ public class ContactController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<ContactMessage>>> List()
         => await db.ContactMessages.AsNoTracking()
             .OrderByDescending(m => m.CreatedAt).Take(200).ToListAsync();
 
     [HttpPut("{id:int}/read")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> MarkRead(int id)
     {
         var m = await db.ContactMessages.FindAsync(id);
@@ -46,7 +46,7 @@ public class ContactController(AppDbContext db) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> Delete(int id)
     {
         var m = await db.ContactMessages.FindAsync(id);

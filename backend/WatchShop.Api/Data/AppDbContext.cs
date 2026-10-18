@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
     public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
+    public DbSet<Customer> Customers => Set<Customer>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -54,6 +55,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.PaymentMethod).HasConversion<string>().HasMaxLength(20);
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             e.HasIndex(x => x.Code).IsUnique();
+            e.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasMany(x => x.Items).WithOne()
                 .HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -72,9 +75,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Message).HasMaxLength(2000);
         });
 
+        b.Entity<Customer>(e =>
+        {
+            e.Property(x => x.FullName).HasMaxLength(100);
+            e.Property(x => x.Email).HasMaxLength(150);
+            e.Property(x => x.PasswordHash).HasMaxLength(100);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Address).HasMaxLength(300);
+            e.HasIndex(x => x.Email).IsUnique();
+        });
+
         b.Entity<AdminUser>(e =>
         {
             e.Property(x => x.Username).HasMaxLength(50);
+            e.Property(x => x.FullName).HasMaxLength(100);
+            e.Property(x => x.Role).HasMaxLength(20);
             e.Property(x => x.PasswordHash).HasMaxLength(100);
             e.HasIndex(x => x.Username).IsUnique();
         });

@@ -114,3 +114,33 @@ export interface AdminStats {
   products: number
   lowStock: number
 }
+
+export interface Customer {
+  id: number
+  fullName: string
+  email: string
+  phone: string | null
+  address: string | null
+}
+
+export interface CustomerAuthResult {
+  token: string
+  expiresAt: string
+  customer: Customer
+}
+
+export type AdminRole = 'Owner' | 'Staff'
+
+export interface AdminMe {
+  username: string
+  fullName: string
+  role: AdminRole
+}
+
+export interface AdminUser {
+  id: number
+  username: string
+  fullName: string
+  role: AdminRole
+  isActive: boolean
+}

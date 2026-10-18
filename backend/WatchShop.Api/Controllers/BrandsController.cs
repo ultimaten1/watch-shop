@@ -22,7 +22,7 @@ public class BrandsController(AppDbContext db) : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<BrandDto>> Create(BrandUpsertDto dto)
     {
         var name = dto.Name.Trim();
@@ -39,7 +39,7 @@ public class BrandsController(AppDbContext db) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> Delete(int id)
     {
         var brand = await db.Brands.FindAsync(id);

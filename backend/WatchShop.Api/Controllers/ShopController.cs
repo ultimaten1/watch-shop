@@ -17,7 +17,7 @@ public class ShopController(AppDbContext db, IOptions<ShopOptions> shop) : Contr
 
     /// <summary>Số liệu nhanh cho trang quản trị.</summary>
     [HttpGet("api/admin/stats")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<object>> Stats() => new
     {
         newOrders = await db.Orders.CountAsync(o => o.Status == OrderStatus.New),

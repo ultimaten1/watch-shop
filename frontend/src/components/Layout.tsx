@@ -2,10 +2,12 @@ import { useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useCart } from '../cart'
 import { useShop } from '../shop'
+import { useAccount } from '../account'
 
 export default function Layout() {
   const shop = useShop()
   const { count } = useCart()
+  const { customer } = useAccount()
   const { pathname } = useLocation()
 
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
@@ -30,6 +32,9 @@ export default function Layout() {
             <NavLink to="/gioi-thieu">Về cửa hàng</NavLink>
             <NavLink to="/lien-he">Liên hệ</NavLink>
             <NavLink to="/tra-cuu">Tra cứu đơn</NavLink>
+            {customer
+              ? <NavLink to="/tai-khoan">Tài khoản</NavLink>
+              : <NavLink to="/dang-nhap">Đăng nhập</NavLink>}
           </nav>
           <Link to="/gio-hang" className="cart-link" aria-label={`Giỏ hàng, ${count} sản phẩm`}>
             Giỏ hàng

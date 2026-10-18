@@ -45,7 +45,8 @@ public class OrdersController(AppDbContext db, IOptions<PaymentOptions> paymentO
             Note = dto.Note,
             PaymentMethod = dto.PaymentMethod,
             Status = OrderStatus.New,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            CustomerId = await CurrentCustomerIdAsync()
         };
 
         foreach (var p in products)
@@ -81,9 +82,22 @@ public class OrdersController(AppDbContext db, IOptions<PaymentOptions> paymentO
         return ToDto(order, includePayment: order.Status == OrderStatus.New);
     }
 
+    /// <summary>Khách đã đăng nhập xem lịch sử đơn của mình.</summary>
+    [HttpGet("mine")]
+    [Authorize(Roles = "Customer")]
+    public async Task<ActionResult<List<OrderDto>>> Mine()
+    {
+        var customerId = await CurrentCustomerIdAsync();
+        if (customerId is null) return Unauthorized();
+        var orders = await db.Orders.AsNoTracking().Include(o => o.Items)
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.CreatedAt).Take(100).ToListAsync();
+        return orders.Select(o => ToDto(o, includePayment: o.Status == OrderStatus.New)).ToList();
+    }
+
     // ---------- Quản trị ----------
     [HttpGet]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<OrderDto>>> List([FromQuery] OrderStatus? status)
     {
         var q = db.Orders.AsNoTracking().Include(o => o.Items).AsQueryable();
@@ -93,7 +107,7 @@ public class OrdersController(AppDbContext db, IOptions<PaymentOptions> paymentO
     }
 
     [HttpPut("{id:int}/status")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<OrderDto>> UpdateStatus(int id, UpdateOrderStatusDto dto)
     {
         var order = await db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
@@ -120,6 +134,14 @@ public class OrdersController(AppDbContext db, IOptions<PaymentOptions> paymentO
     }
 
     // ---------- Helpers ----------
+    /// <summary>Id khách nếu request có token khách hợp lệ và tài khoản còn tồn tại; ngược lại null (khách vãng lai).</summary>
+    private async Task<int?> CurrentCustomerIdAsync()
+    {
+        if (!User.IsInRole("Customer")) return null;
+        if (!int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id)) return null;
+        return await db.Customers.AnyAsync(c => c.Id == id) ? id : null;
+    }
+
     private async Task<string> GenerateCodeAsync()
     {
         while (true)

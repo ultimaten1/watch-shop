@@ -87,6 +87,7 @@ builder.Services
             ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
+builder.Services.AddScoped<WatchShop.Api.Services.TokenService>();
 builder.Services.AddAuthorization();
 
 // ---------- CORS (cho React khi chạy dev ở cổng 5173) ----------

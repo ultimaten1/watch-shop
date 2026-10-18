@@ -11,6 +11,8 @@ import OrderLookup from './pages/OrderLookup'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
+import CustomerAuth from './pages/CustomerAuth'
+import Account from './pages/Account'
 
 // Trang quản trị tải riêng để khách không phải tải thêm code không dùng tới
 const AdminApp = lazy(() => import('./admin/AdminApp'))
@@ -33,6 +35,9 @@ export default function App() {
         <Route path="tra-cuu" element={<OrderLookup />} />
         <Route path="gioi-thieu" element={<About />} />
         <Route path="lien-he" element={<Contact />} />
+        <Route path="dang-nhap" element={<CustomerAuth mode="login" />} />
+        <Route path="dang-ky" element={<CustomerAuth mode="register" />} />
+        <Route path="tai-khoan" element={<Account />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

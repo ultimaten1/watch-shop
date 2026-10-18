@@ -1,16 +1,28 @@
 import type {
-  AdminStats, Brand, ContactMessage, Order, OrderStatus, Paged, PaymentMethod,
+  AdminMe, AdminStats, AdminUser, Brand, ContactMessage, Customer, CustomerAuthResult, Order, OrderStatus, Paged, PaymentMethod,
   Product, ProductInput, ShopInfo,
 } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
 const TOKEN_KEY = 'ws_admin_token'
+const CUSTOMER_KEY = 'ws_customer_token'
 
 export const auth = {
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (t: string) => localStorage.setItem(TOKEN_KEY, t),
   clear: () => localStorage.removeItem(TOKEN_KEY),
 }
+
+export const customerAuth = {
+  get: () => localStorage.getItem(CUSTOMER_KEY),
+  set: (t: string) => localStorage.setItem(CUSTOMER_KEY, t),
+  clear: () => localStorage.removeItem(CUSTOMER_KEY),
+}
+
+// Các API dành cho khách dùng token khách; còn lại dùng token quản trị
+const isCustomerPath = (path: string, method?: string) =>
+  path.startsWith('/api/account') || path.startsWith('/api/orders/mine') ||
+  (path === '/api/orders' && method === 'POST')
 
 export class ApiError extends Error {
   status: number
@@ -22,7 +34,9 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
-  const token = auth.get()
+  const asCustomer = isCustomerPath(path, init.method)
+  const store = asCustomer ? customerAuth : auth
+  const token = store.get()
   if (token) headers.set('Authorization', `Bearer ${token}`)
   if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
 
@@ -34,7 +48,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (res.status === 401 && token) {
-    auth.clear()
+    store.clear()
   }
   if (res.status === 429) throw new ApiError('Bạn thao tác quá nhanh, vui lòng đợi một phút rồi thử lại.', 429)
   if (!res.ok) {
@@ -87,12 +101,32 @@ export const api = {
   lookupOrder: (code: string, phone: string) =>
     request<Order>('/api/orders/lookup' + qs({ code, phone })),
 
+  // Tài khoản khách
+  register: (b: { fullName: string; email: string; password: string; phone?: string }) =>
+    request<CustomerAuthResult>('/api/account/register', { method: 'POST', body: JSON.stringify(b) }),
+  customerLogin: (email: string, password: string) =>
+    request<CustomerAuthResult>('/api/account/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  customerMe: () => request<Customer>('/api/account/me'),
+  updateProfile: (b: { fullName: string; phone?: string; address?: string }) =>
+    request<Customer>('/api/account/me', { method: 'PUT', body: JSON.stringify(b) }),
+  changeCustomerPassword: (currentPassword: string, newPassword: string) =>
+    request<void>('/api/account/password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) }),
+  myOrders: () => request<Order[]>('/api/orders/mine'),
+
   // Quản trị
   login: (username: string, password: string) =>
     request<{ token: string; expiresAt: string }>('/api/auth/login', {
       method: 'POST', body: JSON.stringify({ username, password }),
     }),
-  me: () => request<{ username: string }>('/api/auth/me'),
+  me: () => request<AdminMe>('/api/auth/me'),
+  changeAdminPassword: (currentPassword: string, newPassword: string) =>
+    request<void>('/api/auth/password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) }),
+  adminUsers: () => request<AdminUser[]>('/api/admin/users'),
+  createAdminUser: (b: { username: string; fullName: string; password: string; role: string }) =>
+    request<AdminUser>('/api/admin/users', { method: 'POST', body: JSON.stringify(b) }),
+  updateAdminUser: (id: number, b: { fullName: string; role: string; isActive: boolean; newPassword?: string }) =>
+    request<AdminUser>(`/api/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+  deleteAdminUser: (id: number) => request<void>(`/api/admin/users/${id}`, { method: 'DELETE' }),
   stats: () => request<AdminStats>('/api/admin/stats'),
   productById: (id: number) => request<Product>(`/api/products/by-id/${id}`),
   createProduct: (b: ProductInput) =>

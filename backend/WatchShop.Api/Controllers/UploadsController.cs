@@ -5,7 +5,7 @@ namespace WatchShop.Api.Controllers;
 
 [ApiController]
 [Route("api/uploads")]
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class UploadsController(IWebHostEnvironment env) : ControllerBase
 {
     private const long MaxBytes = 5 * 1024 * 1024;

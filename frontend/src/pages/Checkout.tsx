@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useCart } from '../cart'
 import { usePageMeta } from '../hooks'
+import { useAccount } from '../account'
 import { money } from '../format'
 import type { PaymentMethod } from '../types'
 
@@ -15,8 +16,20 @@ const METHODS: { value: PaymentMethod; title: string; hint: string }[] = [
 export default function Checkout() {
   usePageMeta('Đặt hàng')
   const cart = useCart()
+  const { customer } = useAccount()
   const nav = useNavigate()
   const [form, setForm] = useState({ customerName: '', phone: '', email: '', address: '', note: '' })
+  // Điền sẵn thông tin từ tài khoản (chỉ điền ô còn trống)
+  useEffect(() => {
+    if (!customer) return
+    setForm(f => ({
+      customerName: f.customerName || customer.fullName,
+      phone: f.phone || customer.phone || '',
+      email: f.email || customer.email,
+      address: f.address || customer.address || '',
+      note: f.note,
+    }))
+  }, [customer])
   const [method, setMethod] = useState<PaymentMethod>('BankTransfer')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

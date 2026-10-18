@@ -72,7 +72,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("by-id/{id:int}")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ProductDto>> GetById(int id)
     {
         var p = await db.Products.AsNoTracking()
@@ -82,7 +82,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ProductDto>> Create(ProductUpsertDto dto)
     {
         if (!await db.Brands.AnyAsync(b => b.Id == dto.BrandId))
@@ -100,7 +100,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ProductDto>> Update(int id, ProductUpsertDto dto)
     {
         var p = await db.Products.Include(x => x.Images).Include(x => x.Brand)
@@ -116,7 +116,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> Delete(int id)
     {
         var p = await db.Products.FindAsync(id);
