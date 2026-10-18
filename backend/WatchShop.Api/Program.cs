@@ -4,11 +4,12 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using WatchShop.Api.Data;
-using WatchShop.Api.Options;
+using WatchShop.Api.Common;
+using WatchShop.Application;
+using WatchShop.Application.Configuration;
+using WatchShop.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,9 +42,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownProxies.Clear();
 });
 
-// ---------- Database ----------
-builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+// ---------- Các tầng: Application (nghiệp vụ) và Infrastructure (database, bảo mật) ----------
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // ---------- Web API ----------
 builder.Services.AddControllers()
@@ -87,7 +88,6 @@ builder.Services
             ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
-builder.Services.AddScoped<WatchShop.Api.Services.TokenService>();
 builder.Services.AddAuthorization();
 
 // ---------- CORS (cho React khi chạy dev ở cổng 5173) ----------
@@ -109,6 +109,7 @@ builder.Services.AddRateLimiter(o =>
 
 var app = builder.Build();
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
 {
@@ -117,15 +118,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 // ---------- Tạo / cập nhật database và dữ liệu mẫu ----------
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    if (db.Database.GetMigrations().Any())
-        await db.Database.MigrateAsync();
-    else
-        await db.Database.EnsureCreatedAsync();
-    await DbSeeder.SeedAsync(db, app.Configuration);
-}
+await app.Services.InitializeDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {

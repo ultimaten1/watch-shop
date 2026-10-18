@@ -55,18 +55,20 @@ Mở `http://localhost:5173`. Trang quản trị ở `http://localhost:5173/admi
 2. Sửa nội dung trang `frontend/src/pages/About.tsx` thành câu chuyện thật của gia đình.
 3. Gửi thử một đơn hàng chuyển khoản, quét mã QR bằng app ngân hàng để chắc chắn đúng tài khoản.
 
-## Dùng migrations của EF Core
+## Code First với migrations của EF Core
 
-Mặc định app dùng `EnsureCreated` cho nhanh. Khi muốn quản lý thay đổi database đúng cách:
+Cấu trúc database được định nghĩa bằng các class trong `WatchShop.Domain/Entities` và cấu hình trong `WatchShop.Infrastructure/Persistence/AppDbContext.cs`. Migrations nằm ở `WatchShop.Infrastructure/Persistence/Migrations`. Khi app khởi động sẽ tự chạy `Migrate()`.
+
+Khi sửa entity, tạo migration mới (tắt backend trước):
 
 ```bash
-dotnet tool install --global dotnet-ef
-cd backend/WatchShop.Api
-dotnet ef migrations add InitialCreate
-dotnet run
+dotnet tool install --global dotnet-ef   # chỉ cần lần đầu
+cd backend
+dotnet ef migrations add TenThayDoi --project WatchShop.Infrastructure --startup-project WatchShop.Api --output-dir Persistence/Migrations
+dotnet ef database update --project WatchShop.Infrastructure --startup-project WatchShop.Api
 ```
 
-Khi đã có thư mục `Migrations`, app tự chuyển sang `Migrate()`. Nếu database đã được tạo bằng `EnsureCreated`, hãy xoá database cũ trước khi thêm migration đầu tiên.
+Chuỗi kết nối **phải có tên database** (`Initial Catalog=WatchShop`), nếu thiếu SQL Server sẽ dùng database `master`.
 
 ## Đưa lên mạng
 
@@ -100,12 +102,23 @@ Bản này dùng chuyển khoản QR nên **không cần hợp đồng cổng th
 
 ## Cấu trúc thư mục
 
+Backend theo Clean Architecture (phụ thuộc đi một chiều: Api → Infrastructure → Application → Domain):
+
 ```
-backend/WatchShop.Api
-  Controllers/   Auth, Products, Brands, Orders, Contact, Uploads, Shop
-  Models/        Brand, Product, Order, ContactMessage, AdminUser...
-  Data/          AppDbContext, DbSeeder (dữ liệu mẫu)
-  Dtos/          dữ liệu vào/ra của API
+backend/
+  WatchShop.Domain          Entities (Brand, Product, Order, Customer, AdminUser...), Enums. Không phụ thuộc gì.
+  WatchShop.Application     Nghiệp vụ, không biết EF Core hay HTTP
+    Abstractions/           IRepository, IUnitOfWork, IPasswordHasher, ITokenService
+    Services/               ProductService, OrderService, AuthService, AccountService...
+    Dtos/                   dữ liệu vào/ra của API
+    Common/                 lỗi nghiệp vụ (NotFound, BadRequest...), Slugger
+  WatchShop.Infrastructure  Cài đặt chi tiết
+    Persistence/            AppDbContext, Repositories, UnitOfWork, DbSeeder, Migrations
+    Security/               BCryptPasswordHasher, JwtTokenService
+  WatchShop.Api             Lớp giao tiếp HTTP
+    Controllers/            mỏng, chỉ nhận request và gọi Service
+    Common/                 middleware chuyển lỗi nghiệp vụ thành mã HTTP
+    Program.cs              cấu hình, JWT, CORS, rate limit
 frontend/src
   pages/         các trang khách xem
   admin/         trang quản trị
@@ -117,6 +130,7 @@ frontend/src
 ## Những điều server tự bảo vệ
 
 - Giá và tồn kho luôn tính lại ở server khi đặt hàng, khách không sửa giá được.
-- Mật khẩu quản trị lưu bằng BCrypt; đăng nhập, form liên hệ và đặt hàng có giới hạn tần suất.
+- Mật khẩu quản trị và khách hàng lưu bằng BCrypt; đăng nhập, đăng ký, form liên hệ và đặt hàng có giới hạn tần suất.
+- Phân quyền: khách (`Customer`), nhân viên (`Admin`), chủ cửa hàng (`Admin` + `Owner`). Token của khách không gọi được API quản trị.
 - Upload ảnh kiểm tra đuôi file, dung lượng và nội dung thật của file.
 - Tra cứu đơn cần cả mã đơn và số điện thoại.

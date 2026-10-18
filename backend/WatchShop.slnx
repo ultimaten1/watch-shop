@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="WatchShop.Api/WatchShop.Api.csproj" />
+  <Project Path="WatchShop.Application/WatchShop.Application.csproj" />
+  <Project Path="WatchShop.Domain/WatchShop.Domain.csproj" />
+  <Project Path="WatchShop.Infrastructure/WatchShop.Infrastructure.csproj" />
+</Solution>
