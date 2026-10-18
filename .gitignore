@@ -10,3 +10,7 @@ appsettings.Production.json
 
 publish/
 deploy/production.env
+
+# script chay local
+/start.bat
+/stop.bat
