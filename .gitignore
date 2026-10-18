@@ -1,0 +1,12 @@
+bin/
+obj/
+node_modules/
+dist/
+.vs/
+*.user
+backend/WatchShop.Api/wwwroot/uploads/*
+!backend/WatchShop.Api/wwwroot/uploads/.gitkeep
+appsettings.Production.json
+
+publish/
+deploy/production.env
